@@ -7,7 +7,7 @@
   "chrome": {
     "_comment": "Path can be 'autodetect' or full path to chrome.exe (C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe) mind double slashes on windows",
     "path": "autodetect"
-  },  
+  },
   "profiles": [
     {
       "enabled": true,
@@ -190,6 +190,24 @@
         }
       }
     },
+    "3070ti": {
+      "EUR": {
+        "enabled": true,
+        "maxprice": 950,
+        "useWarehouse": true
+      },
+      "UK": {
+        "enabled": true,
+        "maxprice": 500,
+        "useWarehouse": true
+      },
+      "advanced": {
+        "buttons": {
+          "enableMultipleButtons": false,
+          "overrideButtons": [1,2]
+        }
+      }
+    },
     "3070_LHR": {
       "EUR": {
         "enabled": true,
@@ -235,6 +253,24 @@
       "UK": {
         "enabled": true,
         "maxprice": 950,
+        "useWarehouse": true
+      },
+      "advanced": {
+        "buttons": {
+          "enableMultipleButtons": false,
+          "overrideButtons": [1,2]
+        }
+      }
+    },
+    "3080ti": {
+      "EUR": {
+        "enabled": true,
+        "maxprice": 1400,
+        "useWarehouse": true
+      },
+      "UK": {
+        "enabled": true,
+        "maxprice": 1000,
         "useWarehouse": true
       },
       "advanced": {

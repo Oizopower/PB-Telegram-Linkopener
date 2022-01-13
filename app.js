@@ -1,8 +1,9 @@
-const { TelegramClient } = require("telegram");
+const { Api, TelegramClient } = require("telegram");
 const { StoreSession } = require('telegram/sessions');
 const { NewMessage } = require('telegram/events');
 const { NewMessageEvent } = require('telegram/events/NewMessage');
 const { Message } = require('telegram/tl/custom/message');
+Logger = require('telegram/extensions').Logger
 
 const input = require("input");
 const figlet = require("figlet");
@@ -68,6 +69,7 @@ if (opsys == "darwin") {
 
 const client = new TelegramClient(storeSession, apiId, apiHash, 
 {
+    baseLogger: new Logger('error'),
     connectionRetries: 5,
 });
 
@@ -130,63 +132,56 @@ async function handleMessages(event)
 
             if (titleUser.includes("Direct Buy") || titleUser.includes("PartsBot Amazon Alert") || titleUser.includes("Announcements General"))
             {
-                // Make array of all possible buttons
+                let urlContainer = false;
                 if(!isPB2)
                 {
-                    try{
-                        buttonLink.push(message.replyMarkup.rows[0].buttons[0].url);
-                    } catch (error) {
-                        logger.warn(" Button 1 does not exists on this alert");
-                    }
-                } 
+                    urlContainer = message.replyMarkup.rows[0].buttons;
+                }
                 else
                 {
-                    try{
-                        let firstButton = message.entities[2].url;
-                        if(!firstButton.includes("www.amazon.null"))
+                    urlContainer = message.entities;
+                }
+
+                // Make array of all possible buttons
+                if(urlContainer)
+                {
+                    let linkObject = {};
+
+                    urlContainer.forEach(element => {
+                        let typeLink = false;
+    
+                        if(element.hasOwnProperty("url"))
                         {
-                            buttonLink.push(message.entities[2].url);
+                            if(element.url.includes("/gp/product/")) {
+                                typeLink = "checkout";
+                            }
+                            else if(element.url.includes("/checkout/turbo-initiate")) {
+                                typeLink = "turbo";
+                            }
+                            else if(element.url.includes("/purchase_item/")) {
+                                typeLink = "extension";
+                            }
+    
+                            linkObject[typeLink] = element.url;
                         }
-                    } catch (error) {
-                        logger.warn(" Button 1 does not exists on this alert");
+                    });
+    
+                    /** validate links */
+                    if(!linkObject.turbo)
+                    {
+                        linkObject.turbo = linkObject.checkout;
+                    } 
+                    if(!linkObject.extension) {
+                        linkObject.extension = linkObject.turbo;
                     }
+    
+                    Object.keys(linkObject).forEach(key => {
+                        buttonLink.push(linkObject[key]);
+                    });
                 }
 
                 if(buttonLink.length > 0)
                 {
-                    if(!isPB2)
-                    {
-                        try{
-                            buttonLink.push(message.replyMarkup.rows[0].buttons[1].url);
-                        } catch (error) {
-                            buttonLink.push(message.replyMarkup.rows[0].buttons[1].url);
-                            logger.warn(" Button 2 does not exists on this alert, using button 1 as fallback for button 2");
-                        }
-        
-                        try{
-                            buttonLink.push(message.replyMarkup.rows[0].buttons[2].url);
-                        } catch (error) {
-                            buttonLink.push(message.replyMarkup.rows[0].buttons[1].url);
-                            logger.warn(" Button 3 does not exists on this alert, using button 2 as fallback for button 3");
-                        }
-                    }
-                    else
-                    {
-                        try{
-                            buttonLink.push(message.entities[3].url);
-                        } catch (error) {
-                            buttonLink.push(message.replyMarkup.rows[0].buttons[2].url);
-                            logger.warn(" Button 2 does not exists on this alert, using button 1 as fallback for button 2");
-                        }
-        
-                        try{
-                            buttonLink.push(message.entities[4].url);
-                        } catch (error) {
-                            buttonLink.push(message.entities[3].url);
-                            logger.warn(" Button 3 does not exists on this alert, using button 2 as fallback for button 3");
-                        }
-                    }
-
                     let productPriceReg = messageText.match(/Price: (.*)/i)[1];
                     let productPrice = formatPrice(productPriceReg);
                     
@@ -469,6 +464,13 @@ async function openBrowser(opsys, buttonLink, productData)
                         return;
                     }
                 });
+
+                if(Config.telegram.notifySelf !== undefined && Config.telegram.notifySelf)
+                {
+                    await client.sendMessage('me',{
+                        message:"Following product opened on Telegram Link Opener: \nProduct: " + productData.productName + "\nWebsite:" + productData.website + "\nURL: " + linksToOpen[j].url
+                    });
+                }
             }
             catch(error) {
                 logger.error(error)
@@ -584,20 +586,7 @@ function printMemoryUsage()
 function printStatus()
 {
     let DonateMessages = [
-        "GEWOON GOEIE KOFI",
-        "DONT FORGET TO BUY ME A KOFI (PREFER IRISH)",
-        "ATLEAST UMIT, DAAN, PAX AND PATRICK BOUGHT ME A KOFI",
-        "NEED MOAR KOFI",
-        "CREDITS TO MELVIN FOR MAKING THOSE TG GROUPS, HE DESIRVES A KOFI AS WELL - https://www.ko-fi.com/partsbotfze",
-        "WHAT DO YOU CALL SAD KOFI? DESPRESSO",
-        "I DRINK SO MUCH KOFI AT WORK, I CONSIDER IT PART OF MY DAILY GRIND",
-        "SOUP OF THE DAY: KOFI",
-        "HOW ARE KOFI BEANS LIKE TEENAGERS? BOTH ARE ALWAYS GETTING GROUNDED",
-        "WHAT KIND OF SUGAR DOES LADY GAGA USE IN HER KOFI? RAW RAW RAW RAW RAW.",
-        "DOES MOSES USE INSTANT KOFI? NO. HE BREWS.",
-        "I LIKE MY GIRLFRIEND SAME WAY I LIKE MY KOFI: SMOKING HOT!",
-        "I LIKE MY KOFI THE SAME WAY AS MY SENSE OF HUMOR: BLACK!",
-        "BARISTA: HOW DO YOU TAKE YOUR KOFI? ME: VERY, VERY SERIOUSLY."
+        "IF YOU MANAGED TO GRAB SOMETHING, DONT FORGET TO DONATE"
     ]
 
     logger.mark(" \x1b[1m\x1b[33m" + DonateMessages[Math.floor(Math.random()*DonateMessages.length)], " - https://ko-fi.com/oizopower\x1b[0m")
