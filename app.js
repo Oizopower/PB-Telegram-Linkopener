@@ -3,7 +3,8 @@ const { StoreSession } = require('telegram/sessions');
 const { NewMessage } = require('telegram/events');
 const { NewMessageEvent } = require('telegram/events/NewMessage');
 const { Message } = require('telegram/tl/custom/message');
-Logger = require('telegram/extensions').Logger
+const { NewCallbackQueryDefaults } = require("telegram/events/CallbackQuery");
+const Logger = require('telegram/extensions').Logger
 
 const input = require("input");
 const figlet = require("figlet");
@@ -14,7 +15,6 @@ const { exec } = require("child_process");
 const log4js = require('log4js');
 const fetch = require('node-fetch');
 const currency = require('currency.js');
-const { NewCallbackQueryDefaults } = require("telegram/events/CallbackQuery");
 
 const liner = "===================================================================================================================";
 const productCooldown = {};
@@ -73,6 +73,14 @@ const client = new TelegramClient(storeSession, apiId, apiHash,
     connectionRetries: 5,
 });
 
+async function run() {
+    const result = await client.invoke(
+      new Api.account.UpdateStatus({
+        offline: false,
+      })
+    );
+  };
+
 (async () => {
 
     let versionInfo = await checkGithubVersion();
@@ -98,6 +106,8 @@ const client = new TelegramClient(storeSession, apiId, apiHash,
         printMemoryUsage();    
     }, 2000);
     
+
+    await new Promise(resolve => setInterval(() => resolve(run()), 3000));
 
     /**
      * TEST = 1165395320

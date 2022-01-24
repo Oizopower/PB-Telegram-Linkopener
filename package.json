@@ -1,6 +1,6 @@
 {
   "name": "PB-Telegram-LinkOpener",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Partsbot telegram opener by Oizopower",
   "main": "app.js",
   "bin": "app.js",
