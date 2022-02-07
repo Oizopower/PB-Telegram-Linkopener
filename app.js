@@ -35,6 +35,7 @@ process.stdin.on('keypress', (str, key) => {
     linkNamesOpened.forEach(element => {
         logger.info(element.title + " - " + element.price + " - " + element.url);
     })
+    console.log(liner);
   } 
 });
 
