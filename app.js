@@ -5,6 +5,7 @@ const { NewMessageEvent } = require('telegram/events/NewMessage');
 const { Message } = require('telegram/tl/custom/message');
 const { NewCallbackQueryDefaults } = require("telegram/events/CallbackQuery");
 const Logger = require('telegram/extensions').Logger
+const readline = require('readline');
 
 const input = require("input");
 const figlet = require("figlet");
@@ -16,11 +17,26 @@ const log4js = require('log4js');
 const fetch = require('node-fetch');
 const currency = require('currency.js');
 
+
+readline.emitKeypressEvents(process.stdin);
+process.stdin.setRawMode(true);
+
 const liner = "===================================================================================================================";
 const productCooldown = {};
 
 let linksOpened = 0;
 let linksSkipped = 0;
+let linkNamesOpened = [];
+
+process.stdin.on('keypress', (str, key) => {
+  if (key.ctrl && key.name === 'c') {
+    process.exit();
+  } else if (key.name === "l") {
+    linkNamesOpened.forEach(element => {
+        logger.info(element.title + " - " + element.price + " - " + element.url);
+    })
+  } 
+});
 
 
 if(!checkFileExistsSync(path.join(process.cwd(), './config.json')))
@@ -87,7 +103,7 @@ async function run() {
 
     figlet('Oizopower', function(err, data) {
         console.log(data);
-        console.log("\n======================================================\n\n Partsbot - Platinum Telegram Link Opener (v"+versionInfo.local+" Remote-latest: v"+versionInfo.github+")\n\n Donate: https://www.ko-fi.com/oizopower\n\n======================================================");
+        console.log("\n======================================================\n\n Partsbot - Gold + Platinum Telegram Link Opener (v"+versionInfo.local+" Remote-latest: v"+versionInfo.github+")\n Press L to show history for opened links\n\n Donate: https://www.ko-fi.com/oizopower\n\n======================================================");
         console.log("+ Bezig met opstarten");
     });
     
@@ -269,6 +285,8 @@ async function handleMessages(event)
 
                     // start normal filters
                     let filterStatus = false;
+                    let openBrowserExecute = false;
+                    let blacklist = false;
 
                     if (Config.filters.hasOwnProperty(productData.productModel)) 
                     {
@@ -281,26 +299,48 @@ async function handleMessages(event)
                                 {
                                     if(Config.filters[productData.productModel][productData.amazonCountry]['useWarehouse'] && !buttonLink.includes("amazon.null"))
                                     {
-                                        openBrowser(opsys, buttonLink, productData);
-                                    }
-                                    else
-                                    {
-                                        filterStatus = false;
+                                        openBrowserExecute = true;
+                                        filterStatus = true;
                                     }
                                 }
                                 else
                                 {
                                     if(!buttonLink.includes("amazon.null"))
                                     {
-                                        openBrowser(opsys, buttonLink, productData);
-                                    }
-                                    else
-                                    {
-                                        filterStatus = false;
+                                        openBrowserExecute = true;
+                                        filterStatus = true;
                                     }
                                 }
                             } 
                         }
+                    }
+
+
+                    if(Config.hasOwnProperty("blacklist") && Config.blacklist.length > 0)
+                    {
+                        for(var i = 0; i < Config.blacklist.length; i++)
+                        {
+                            let productName = productData.productName.toLowerCase();
+                            if(productName.includes(Config.blacklist[i].toLowerCase()))
+                            {
+                                openBrowserExecute = false;
+                                filterStatus = false;
+                                blacklist = true;
+                            }
+                        }
+                    }
+
+                    if(openBrowserExecute)
+                    {
+                        openBrowser(opsys, buttonLink, productData);
+
+                        let newurl = buttonLink[0];
+                        let paramsOriginal = new URLSearchParams(newurl);
+                        let domain = (new URL(newurl)).hostname;
+
+                        let registerLogUrl = "https://"+domain+"/gp/product/"+paramsOriginal.get("ASIN")
+                        
+                        linkNamesOpened.push({title: productData.productName, url: registerLogUrl, price: productData.productPrice})
                     }
                     
 
@@ -319,7 +359,8 @@ async function handleMessages(event)
                     {
                         logger.info(" Enabled: " + (Config.filters[productData.productModel][productData.amazonCountry]['enabled'] ? "Yes" : "No") + ", Max Price: " 
                         + Config.filters[productData.productModel][productData.amazonCountry]['maxprice'] + ", WHD accepted: " 
-                        + (Config.filters[productData.productModel][productData.amazonCountry]['useWarehouse'] ? "Yes" : "No"));
+                        + (Config.filters[productData.productModel][productData.amazonCountry]['useWarehouse'] ? "Yes" : "No") + ", Blacklisted: "
+                        + (blacklist ? "Yes" : "No"));
                     }
                     else {
                         logger.info(" No filters found in config");

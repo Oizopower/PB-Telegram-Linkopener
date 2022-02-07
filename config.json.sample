@@ -45,6 +45,10 @@
     "_comment": "Button number 0: checkout, Button number 1: Turbo, Button number 2: Extension URL",
     "number": 2
   },
+  "blacklist": [
+    "palit",
+    "zotac"
+  ],  
   "filters": {
     "PS5": {
       "EUR": {
